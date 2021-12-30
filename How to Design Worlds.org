@@ -1,0 +1,173 @@
+* How to Design Worlds (HtDW)
+
+** Steps
+
+World program design is divided into two phases, each of which has sub-parts:
+
+1. Domain analysis (use a piece of paper!)
+    1.1 Sketch program scenarios
+    1.2 Identify constant information
+    1.3 Identify changing information
+    1.4 Identify big-bang options
+2. Build the actual program
+    2.1 Constants (based on 1.2 above)
+    2.2 Data definitions using HtDD (based on 1.3 above)
+    2.3 Functions using HtDF
+        2.3.1 main first (based on 1.3, 1.4 and 2.2 above)
+        2.3.2 wish list entriesfor big-bang handlers
+    2.4 Work through wish list until done
+
+** Template
+
+#+begin_src clojure
+;; My world program  (make this more specific)
+
+;; =================
+;; Constants:
+
+
+;; =================
+;; Data definitions:
+
+;; WS is ... (give WS a better name)
+
+
+
+;; =================
+;; Functions:
+
+;; WS -> WS
+;; start the world with ...
+;; 
+(defn main [ws]
+  (big-bang ws                   ; WS
+            (on-tick   tock)     ; WS -> WS
+            (to-draw   render)   ; WS -> Image
+            (stop-when ...)      ; WS -> Boolean
+            (on-mouse  ...)      ; WS Integer Integer MouseEvent -> WS
+            (on-key    ...)))    ; WS KeyEvent -> WS
+(defn main [ws]
+    ;; create objects
+    (actionOne);; run their actions
+    )
+
+;; WS -> WS
+;; produce the next ...
+;; !!!
+(defn actionOne [ws] ...)
+#+end_src
+
+** Compound Data
+
+Deprecated: Use `(defstruct name :key1 :key2)` to define a structure and `(struct name value1 value 2)` to build an instance.
+
+#+begin_src clojure
+(defstruct pos :x :y)
+(def P1 (struct pos 3 6)) ; constructor
+(def P2 (struct pos 2 8))
+
+(:x P1) ; Selectors
+(:y P2)
+
+; Predicate?
+#+end_src
+
+Use `(defrecord recordName [key1 key2])` to define a record and `(recordName. value1 value2)` to build an instance.
+To select a particular key, use `:keyName recordName`.
+To check if the object is an instance of the record, use `instance? recordName objectName`.
+
+#+begin_src clojure
+(defrecord pos [x y])               ; Record definition
+(def P1 (pos. 3 6))                 ; Constructor
+(def P2 (pos. 2 8))
+
+(println (:x P1))                   ; Selectors
+(println (:y P2))
+
+(println (instance? pos P1))        ; Predicate
+(println (instance? pos "hello"))
+#+end_src
+
+Example: design a data definition that includes two data values
+
+#+begin_src clojure
+(defrecord player [fName lName])
+;; Player is (struct player fName lName)
+;; Interpretation: (struct player fName lName) is a hockey player with fName as the first name and lName as the last name
+(def P1 (player. "Bobby" "Orr")) ;; Example
+
+;; Template
+(defn fnForPlayer [p]
+    (... (playerFn p)    ; String
+        (playerLn p)))   ; String
+;; Rules used:
+;; - Compound rule: 2 fields
+#+end_src
+
+** Problem Solved: Compound P3 - Student
+
+*** Data Definition
+
+PROBLEM A:
+Design a data definition to help a teacher organize their next field trip. On the trip, lunch must be provided for all students. For each student, track their name, their grade (from 1 to 12), and whether or not they have allergies.
+
+#+begin_src clojure
+;; Structure Definition
+;; Type comment
+;; Student is (name grade allergies)
+;; Interpretation: (name grade allergies) records the name of the student, their grade and whether or not they have allergies
+
+;; Examples
+(defrecord student [name grade allergies])
+(def Stu1 (student. "Claire" 9 true))
+(def Stu2 (student. "Leon" 12 false))
+
+;; Template function
+(defn fnForStudent [student]
+    (... (fnName student))      ; String
+    (... (fnGrade student))     ; Natural
+    (... (fnAllergies student)) ; Boolean
+)
+;; Rules used:
+;; - Compound rule: 3 fields
+#+end_src 
+
+*** Function Definition
+
+PROBLEM B:
+To plan for the field trip, if students are in grade 6 or below, the teacher is responsible for keeping track of their allergies. If a student has allergies, and is in a qualifying grade, their name should be added to a special list. Design a function to produce true if a student name should be added to this list.
+
+#+begin_src clojure
+;; Signature (data types): Student -> Boolean
+;; Purpose: produces true if the student is in grade 6 or below and has allergies
+
+;; Stub (function definition that produces a dummy result):
+; (defn keepTrack? [student] false)
+
+;; Examples
+(is (= true (keepTrack? (student. "Ana" 6 true))))
+(is (= false (keepTrack? (student. "Chris" 6 false))))
+(is (= false (keepTrack? (student. "Mary" 5 false))))
+(is (= true (keepTrack? (student. "Joseph" 1 true))))
+(is (= false (keepTrack? (student. "John" 7 true))))
+(is (= false (keepTrack? (student. "Christie" 12 false))))
+
+;; Template: from data definition
+;; Code body
+(defn keepTrack? [student]
+    (and (<= (:grade student) 6) (= true (:allergies student))))
+
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest testKeepTrack
+    (is (= true (keepTrack? (student. "Ana" 6 true))))
+    (is (= false (keepTrack? (student. "Chris" 6 false))))
+    (is (= false (keepTrack? (student. "Mary" 5 false))))
+    (is (= true (keepTrack? (student. "Joseph" 1 true))))
+    (is (= false (keepTrack? (student. "John" 7 true))))
+    (is (= false (keepTrack? (student. "Christie" 12 false)))))
+
+(run-tests 'test-problem)
+#+end_src

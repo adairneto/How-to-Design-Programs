@@ -1,0 +1,245 @@
+* Self-Reference
+
+** What and Why?
+
+Allows us to represent arbitrarily large amounts of information.
+Don't know the size of information in advance.
+
+** List Mechanisms
+
+#+begin_src clojure
+'(1 2 3 4)              ; list definition
+(nth '(:a :b :c) 0)     ; returns the 0th element of the list, i.e., :a
+(list 1 "two" {3 4})    ; creates a list (1 "two {3 4})
+(conj '(1 2 3) 4)       ; Adds 4 to the beginning of the list giving (4 1 2 3)
+(rest '(1 2 3 4))       ; Returns the tail of the list, i.e., (2 3 4)
+#+end_src
+
+** List Data Mechanisms
+
+PROBLEM:
+Imagine that you are designing a program that will keep track of your favorite Quidditch teams. (http://iqasport.org/).
+Design a data definition to represent a list of Quidditch teams.
+
+#+begin_src clojure
+;; Information: UBC, McGill, Toronto
+;; Data: '("UBC", "McGill", "Toronto", empty)
+;; ListOfString is one of:
+;; - empty
+;; - '(String ListOfStrings) - well formed self-reference
+;; Interpretation: a list of strings
+;; Examples: 
+(def LOS1 empty)
+(def LOS2 (cons "McGill" (empty '())))
+(def LOS3 (cons "UBC" (cons "McGill" (empty '()))))
+
+(defn fnForLOS [los]
+    (cond (empty? los) (...)
+          :else
+            (... (first los)                ; String
+                 (fnForLos (rest los)))))   ; ListOfString
+
+;; Template rules used:
+;; - one of: 2 cases
+;; - atomic distinct: empty
+;; - compound data: (cons String ListOfString)
+;; - self-reference: (rest los) is ListOfString
+#+end_src
+
+PROBLEM:
+We want to know whether your list of favorite Quidditch teams includes UBC! Design a function that consumes ListOfString and produces true if  the list includes "UBC".
+
+#+begin_src clojure
+;; ListOfString -> Boolen
+;; Produce true if LOS includes "UBC"
+;; Stub:(defn containsUbc? [los] false)
+
+;; Examples:
+(is (= false (containsUbc? (empty '()))))
+(is (= false (containsUbc? (cons "McGill" (empty '())))))
+(is (= true (containsUbc? (cons "UBC" (empty '())))))
+(is (= true (containsUbc? (cons "UBC" (cons "McGill" (empty '()))))))
+
+;; Template: from data
+;; Code body:
+(defn containsUbc? [los]
+    (cond (empty? los) false
+          :else (if (= "UBC" (first los)) true
+                    (containsUbc? (rest los)))))   ; Recursive call
+
+;; Test and debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= false (containsUbc? (empty '()))))
+    (is (= false (containsUbc? (cons "McGill" (empty '())))))
+    (is (= true (containsUbc? (cons "UBC" (empty '())))))
+    (is (= true (containsUbc? (cons "UBC" (cons "McGill" (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src
+
+** Recipe for Lists
+
+Well formed self-reference, like induction, requires:
+- at least one base case
+- at least one self reference case
+Examples should include base and self-reference cases.
+The template should contain a natural recursion.
+
+** Designing with Lists
+
+PROBLEM:
+You've been asked to design a program having to do with all the owls in the owlery.
+(A) Design a data definition to represent the weights of all the owls. 
+    For this problem call it ListOfNumber.
+(B) Design a function that consumes the weights of owls and produces
+    the total weight of all the owls.
+(C) Design a function that consumes the weights of owls and produces
+    the total number of owls.
+
+#+begin_src clojure
+;; Data definitions:
+
+;; ListOfNumber is one of:
+;;  - empty
+;;  - (cons Number ListOfNumber)
+;; interp. each number in the list is an owl weight in ounces
+(def LON1 empty)
+(def LON2 (cons 60 (cons 42 (empty '()))))
+
+(defn fnForLON [lon]
+  (cond (empty? lon) (...)
+        :else (... (first lon)
+              (fnForLON (rest lon)))))
+
+;; Template rules used:
+;;  - one of: 2 cases
+;;  - atomic distinct: empty
+;;  - compound: (cons Number ListOfNumber)
+;;  - self-reference: (rest lon) is ListOfNumber
+
+;; Functions:
+
+;; ListOfNumber -> Number
+;; produce sum of weights of owls in lon
+;; Stub: (defn sum [lon] 0)
+;; Examples:
+(is (= 0 (sum empty)))
+(is (= 0 (sum (cons 20 (empty '())))))
+(is (= (+ 60 42) (sum (cons 60 (cons 42 (empty '()))))))
+
+;; Template: from data definition
+;; Cody body
+(defn sum [lon]
+  (cond (empty? lon) 0
+        :else (+ (first lon)
+                 (sum (rest lon)))))
+
+;; Test and debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= 0 (sum (empty '()))))
+    (is (= 20 (sum (cons 20 (empty '())))))
+    (is (= (+ 60 42) (sum (cons 60 (cons 42 (empty '())))))))
+
+(run-tests 'test-problem)
+
+;; ListOfNumber -> Natural
+;; Produce total number of weights in consumed list
+;; Stub: (defn count [lon] 0)
+;; Examples:
+(is (= 0 (count (empty '()))))
+(is (= 1 (count (cons 12 (empty '())))))
+(is (= (+ 1 1) (count (cons 35 (cons 12 (empty '()))))))
+
+;; Template: from data definition
+;; Cody body
+(defn count [lon]
+  (cond (empty? lon) 0
+        :else (+ 1
+                 (count (rest lon)))))
+
+;; Test and debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= 0 (count (empty '()))))
+    (is (= 1 (count (cons 12 (empty '())))))
+    (is (= (+ 1 1) (count (cons 35 (cons 12 (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src
+
+** Problem: Boolean List
+
+*** Data Definition
+
+PROBLEM A:
+Design a data definition to represent a list of booleans. Call it ListOfBoolean.
+
+#+begin_src clojure
+;; Structure Definition
+;; Type comment: ListOfBoolean is one of:
+;;  - empty
+;;  - (cons Boolean ListOfBoolean)
+;; Interpretation: each entry in the list represents a true/false
+
+;; Examples
+(def LOB1 (empty '()))
+(def LOB2 (cons true (cons false (empty '()))))
+
+;; Template function
+(defn fnForLOB [lob]
+  (cond (empty? lob) (...)
+        :else (... (first lob)
+              (fnForLOB (rest lob)))))
+
+;; Template rules used:
+;;  - one of: 2 cases
+;;  - atomic distinct: empty
+;;  - compound: (cons Boolean ListOfBoolean)
+;;  - self-reference: (rest lob) is ListOfBoolean
+#+end_src 
+
+*** Function Definition
+
+PROBLEM B:
+Design a function that consumes a list of boolean values and produces true if every value in the list is true. If the list is empty, your function should also produce true. Call it all-true?
+
+#+begin_src clojure
+;; Signature (data types): ListOfBoolean -> Boolean
+;; Purpose: produces true if every value in ListOfBoolean is true, if the list is empty, produce true
+
+;; Stub (function definition that produces a dummy result):
+(defn allTrue? [lob] true)
+
+;; Examples
+(is (= true (allTrue? (empty '()))))
+(is (= true (allTrue? (cons true (cons true (empty '()))))))
+(is (= false (allTrue? (cons false (cons true (empty '()))))))
+(is (= false (allTrue? (cons true (cons false (empty '()))))))
+
+;; Template: from data definition
+;; Code body
+(defn allTrue? [lob]
+  (cond (empty? lob) true
+        :else (and (first lob)
+                   (allTrue? (rest lob)))))
+
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest testAllTrue
+    (is (= true (allTrue? (empty '()))))
+    (is (= true (allTrue? (cons true (cons true (empty '()))))))
+    (is (= false (allTrue? (cons false (cons true (empty '()))))))
+    (is (= false (allTrue? (cons true (cons false (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src

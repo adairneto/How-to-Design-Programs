@@ -1,0 +1,172 @@
+* How to Design Functions (HtDF)
+
+** Steps
+
+1. Signature, purpose and stub.
+2. def examples, wrap each in check-expect.
+3. Template and inventory.
+4. Code the function body.
+5. Test and debug until correct
+
+** Template
+
+#+begin_src clojure
+;; Signature (data types):
+;; Purpose:
+
+;; Stub (function definition that produces a dummy result):
+
+;; Examples
+
+;; Template
+
+;; Code body
+
+;; Test and Debug
+#+end_src
+
+** Example
+
+#+begin_src clojure
+;; Signature (data types): Number -> Number
+;; Purpose: produces two times the given number
+
+;; Stub (function definition that produces a dummy result):
+;; (def (double n) 0) 
+
+;; Examples
+;; (check-expect (double 3) 6)
+;; (check-expect (double 4.2) 8.4)
+
+;; Template
+;; (def double [n]
+;;    (... n))
+
+;; Code body
+(defn double [n]
+    (* 2 n))
+
+;; Test and debug
+(ns test-example1
+    (:require [clojure.test :refer :all]))
+
+(with-test
+    (defn double [n]
+        (* 2 n))
+    (is (= 6 (double 3)))
+    (is (= 8.4 (double 4.2))))
+
+(run-tests 'test-example1)
+#+end_src
+
+** Problem
+
+Problem: Design a function that pluralizes a given word. (Pluralize means to convert the word to its plural form.) For simplicity you may assume that just adding s is enough to pluralize a word. 
+
+#+begin_src clojure
+;; Signature: string -> string
+;; Purpose: add "s" to the end of the string
+;; Stub: (pluralize string) returns strings
+;; Examples: (is (= "words" (pluralize "word")))
+
+;; Template:
+;; (defn pluralize [n]
+;;    (n ... "s"))
+
+;; Code body
+(defn pluralize [n]
+    (str n "s")) ;; str is a clojure function that concats strings
+
+;; Test and debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(is (= "words" (pluralize "word"))) ;; simple test definition
+
+(deftest pluralizing ;; two or more tests together
+    (is (= "words" (pluralize "word")))
+    (is (= "strings" (pluralize "string"))))
+
+(with-test ;; complete test definition
+    (defn pluralize [n]
+        (str n "s"))
+    (is (= "words" (pluralize "word")))
+    (is (= "strings" (pluralize "string"))))
+
+(run-tests 'test-problem)
+#+end_src
+
+** Example
+
+#+begin_src clojure
+;; Signature: Number -> Number
+;; Purpose: given length of one side of square, produce the area of the square
+;; Stub: (defn area [s]) results 0
+
+;; Examples:
+(println (is (= 9 (area 3))))
+(println (is (= (* 3.2 3.2) (area 3.2))))
+
+;; Template:
+;; (defn area [s]
+;;    (... s))
+
+;; Code body:
+(defn area [s]
+    (* s s))
+
+;; Testing: both returns true 
+#+end_src
+
+** How many tests?
+
+Sometimes the problem is not well stated. Our goal is to make a well formed solution given a not well formed problem.
+Test coverage: all of the code must be evaluated.
+All possible paths must be travelled.
+
+Boundary condition (or corner case):
+1. Write an example
+2. Decide what the behaviour is
+3. Fix the purpose 
+4. Fix the function definition
+
+** Problem
+
+#+begin_src clojure
+;; Signature (data types): Float -> Float
+;; Purpose: converts Fahrenheit temperatures to Celsius
+
+;; Stub (function definition that produces a dummy result):
+;; (defn f2C [T]) 0
+
+;; Examples
+(is (= 0 (f2C 32)))
+(is (= 100 (f2C 212)))
+(is (= -40 (f2C -40)))
+
+;; Template
+;; (defn f2C [f]
+;;    (... f))
+
+;; Code body
+(defn f2C [f]
+    (* 5/9 (- f 32)))
+
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(with-test ;; complete test definition
+    (defn f2C [f]
+        (* 5/9 (- f 32)))
+    (is (= 0 (f2C 32)))
+    (is (= 100 (f2C 212)))
+    (is (= -40 (f2C -40))))
+
+(deftest fahrToCel ;; more compact way, without function definition again
+    (is (= 0 (f2C 32)))
+    (is (= 100 (f2C 212)))
+    (is (= -40 (f2C -40))))
+
+(run-tests 'test-problem)
+#+end_src

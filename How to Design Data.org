@@ -1,0 +1,377 @@
+* How to Design Data (HtDD)
+
+How is information represented as a data?
+Data definition informs us how to design functions.
+Problem domain: information about the problem we want to solve, is the interpretation of our data.
+Program: data that represents information.
+
+** Template
+
+#+begin_src clojure
+;; Structure Definition
+
+;; Type comment
+
+;; Interpretation
+
+;; Examples
+
+;; Template function
+#+end_src 
+
+Data Definition: divide the code in data definition and codes.
+
+** Steps
+
+1. A possible structure definition (not until compound data)
+2. A type comment that defines a new type name and describes how to form data of that type.
+3. An interpretation that describes the correspondence between information and data.
+4. One or more examples of the data.
+5. A template for a 1 argument function operating on data of this type.
+
+** What kind of data?
+
+1. Atomic
+2. Distinct
+3. Interval
+4. Enumeration
+5. Itemization
+
+*** Simple Atomic Data
+
+#+begin_src clojure
+;; Data Definition
+;; Type comment: City Name is String
+;; Interpretation: The name of a city
+;; Examples
+(def CN1 "Boston")
+(def CN2 "Vancouver")
+
+;; Functions
+(defn fnForCityName [cn]
+    (... cn))
+;; Template rules
+;; - atomic non-distinct: String
+#+end_src 
+
+Adding a new function:
+
+#+begin_src clojure
+;; Signature (data types): CityName -> Boolean
+;; Purpose: Produce true if the given city is the best in the world (Hogsmeade)
+;; Stub (function definition that produces a dummy result):
+(defn best? [cn]
+    (... true))
+
+;; Examples
+(is (= false (best? "Boston")))
+(is (= true (best? "Hogsmeade")))
+
+;; Template
+;; Took template from data definition
+
+;; Code body
+(defn best? [cn]
+    (= cn "Hogsmeade"))
+
+;; Test and Debug
+(ns test-example
+    (:require [clojure.test :refer :all]))
+
+(deftest testBest ;; two or more tests together
+    (is (= false (best? "Boston")))
+    (is (= true (best? "Hogsmeade"))))
+
+(run-tests 'test-example)
+#+end_src 
+
+*** Structure of Data Orthogonality
+
+Orthogonality: functions recipe and data recipe must be independent. 
+Hence, we'll focus on designing data. 
+
+*** Intervals
+
+For numbers in a certain range.
+
+PROBLEM:
+Using the SeatNum data definition below design a function
+that produces true if the given seat number is on the aisle.
+
+#+begin_src clojure
+;; Structure Definition
+;; Type comment: SeatNum is Integer[1, 32]
+;; Interpretation: seat numbers in a row, 1 and 32 are aisle seats
+;; Examples
+(def SN1 1)  ; aisle
+(def SN2 12) ; middle
+(def SN3 32) ; aisle
+
+;; Template function
+(defn fnForSetNum [sn]
+    (... sn))
+;; Rules used:
+;; -- atomic non-distinct: Integer[1, 32]
+
+;; Desired function
+
+;; Signature (data types): SeatNum -> Boolean
+;; Purpose: produce true if the given seat number in on the aisle
+
+;; Stub (function definition that produces a dummy result):
+(defn aisle? [sn]
+    false)
+
+;; Examples
+;; Test closed boundaries as well as midpoints
+(is (= true (aisle? 1)))
+(is (= false (aisle? 16)))
+(is (= true (aisle? 32)))
+
+;; Template: use template from SeatNum
+;; Code body
+(defn aisle? [sn]
+    (or (= sn 1)
+        (= sn 32)))
+
+;; Test and Debug
+(ns test-example
+    (:require [clojure.test :refer :all]))
+
+(deftest testAisle ;; two or more tests together
+    (is (= true (aisle? 1)))
+    (is (= false (aisle? 16)))
+    (is (= true (aisle? 32))))
+
+(run-tests 'test-example)
+#+end_src 
+
+*** Enumeration
+
+PROBLEM:
+As part of designing a system to keep track of student grades, you
+are asked to design a data definition to represent the letter grade 
+in a course, which is one of A, B or C.
+
+#+begin_src clojure
+;; Data Definition
+;; Type comment:
+;; LetterGrade is one of:
+;; - "A"
+;; - "B"
+;; - "C"
+
+;; Interpretation: the letter grade in a course
+
+;; Examples: are redundant for enumerations
+
+;; Functions
+;; Template function
+(defn fnForLetterGrade [lg]
+    (cond (= lg "A") (... lg)
+          (= lg "B") (... lg)
+          (= lg "C") (... lg)))
+;; Template rules used:
+;; - one of: 3 cases
+;; - atomic distinct value: "A"
+;; - atomic distinct value: "B"
+;; - atomic distinct value: "C"
+#+end_src 
+
+PROBLEM:
+Using the LetterGrade data definition below design a function that
+consumes a letter grade and produces the next highest letter grade. 
+Call your function bump-up.
+
+#+begin_src clojure
+;; Signature (data types): LetterGrade -> LetterGrade
+;; Purpose: produce next highest letter grade (no change for A)
+
+;; Stub (function definition that produces a dummy result):
+(defn bumpUp [lg]
+    A)
+
+;; Examples
+(is (= "A" (bumpUp "A")))
+(is (= "A" (bumpUp "B")))
+(is (= "B" (bumpUp "C")))
+
+;; Template: use template from LetterGrade
+
+;; Code body
+(defn bumpUp [lg]
+    (cond (= lg "A") "A"
+          (= lg "B") "A"
+          (= lg "C") "B"))
+
+;; Test and Debug
+(ns test-example
+    (:require [clojure.test :refer :all]))
+
+(deftest testBumpUp ;; two or more tests together
+    (is (= "A" (bumpUp "A")))
+    (is (= "A" (bumpUp "B")))
+    (is (= "B" (bumpUp "C"))))
+
+(run-tests 'test-example)
+#+end_src 
+
+*** Itemization
+
+PROBLEM:
+Consider designing the system for controlling a New Year's Eve
+display. Design a data definition to represent the current state 
+of the countdown, which falls into one of three categories: 
+- not yet started
+- from 10 to 1 seconds before midnight
+- complete (Happy New Year!)
+
+#+begin_src clojure
+;; Data Definition
+;; Type comment: Countdown is one of:
+;; - false 
+;; - Natural[1, 10]
+;; - "complete"
+
+;; Interpretation: 
+;; False            means that countdown has not yet started
+;; Natural[1, 10]   means that countdown is running and how many seconds left
+;; "complete"       means countdown is over
+
+;; Examples
+(def CD1 false)
+(def CD2 10)    ; just started running
+(def CD3 1)     ; almost over
+(def CD4 "complete")
+
+;; Functions
+;; Template function
+(defn fnForCountdown [c]
+    (cond (false? c) (... c)
+          (and (number? c) (<= 1 c) (<= c 10)) (... c)
+          :else (... c)))
+;; Template rules used: 
+;; - one of: 3 cases
+;; - atomic distinct: false
+;; - atomic non-distinct: Natural[1, 10]
+;; - atomic distinct: "complete"
+#+end_src 
+
+PROBLEM:
+You are asked to contribute to the design for a very simple New Year's
+Eve countdown display. You already have the data definition given below. 
+You need to design a function that consumes Countdown and produces an
+image showing the current status of the countdown. 
+
+#+begin_src clojure
+;; Signature (data types): Countdown -> String
+;; Purpose: produce nice string of current state of countdown
+
+;; Stub (function definition that produces a dummy result):
+(defn countdownToStr [c]
+    " ")
+
+;; Examples
+(is (= "Countdown not yet started!" (countdownToStr false)))
+(is (= (str "Countdown: " 5) (countdownToStr 5)))
+(is (= "Happy New Year!" (countdownToStr "complete")))
+
+;; Template: from data definition
+
+;; Code body
+(defn countdownToStr [c]
+    (cond (false? c) "Countdown not yet started!"
+          (and (number? c) (<= 1 c) (<= c 10)) (str "Countdown: " c)
+          :else "Happy New Year!"))
+
+;; Test and Debug
+(ns test-example
+    (:require [clojure.test :refer :all]))
+
+(deftest testCountdownToStr ;; two or more tests together
+    (is (= "Countdown not yet started!" (countdownToStr false)))
+    (is (= (str "Countdown: " 5) (countdownToStr 5)))
+    (is (= "Happy New Year!" (countdownToStr "complete"))))
+
+(run-tests 'test-example)
+#+end_src 
+
+** Summary
+
+The kind of data informed the template, the function and tests.
+Structure: Information -> Data -> Template -> Function & Tests
+
+** Problem
+
+*** Data Definition
+
+PROBLEM A:
+You are assigned to develop a system that will classify 
+buildings in downtown Vancouver based on how old they are. 
+According to city guidelines, there are three different classification levels:
+new, old, and heritage.
+Design a data definition to represent these classification levels. 
+Call it BuildingStatus.
+
+#+begin_src clojure
+;; Data Definition
+;; Type comment: BuildingStatus is one of:
+;; - "New"
+;; - "Old"
+;; - "Heritage"
+;; Interpretation: classification of a building according to city guidelines
+
+;; Examples: are redundant for enumerations
+
+;; Functions
+;; Template function
+(defn fnForBuildingStatus [status]
+    (cond (= status "New") (... status)
+          (= status "Old") (... status)
+          (= status "Heritage") (... status)))
+;; Template rules used:
+;; - one of: 3 cases
+;; - atomic distinct value: "New"
+;; - atomic distinct value: "Old"
+;; - atomic distinct value: "Heritage"
+#+end_src 
+
+*** Function Definition
+
+PROBLEM B:
+The city wants to demolish all buildings classified as "old". 
+You are hired to design a function called demolish? 
+that determines whether a building should be torn down or not.
+
+#+begin_src clojure
+;; Signature (data types): BuildingStatus -> Boolean
+;; Purpose: determine whether a building should be demolished 
+
+;; Stub (function definition that produces a dummy result):
+(defn demolish? [status]
+    true)
+
+;; Examples
+(is (= false (demolish? "New")))
+(is (= true (demolish? "Old")))
+(is (= false (demolish? "Heritage")))
+
+;; Template: from data definition
+
+;; Code body
+(defn demolish? [status]
+    (cond (= status "New") false
+          (= status "Old") true
+          (= status "Heritage") false))
+
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest testDemolish
+    (is (= false (demolish? "New")))
+    (is (= true (demolish? "Old")))
+    (is (= false (demolish? "Heritage"))))
+
+(run-tests 'test-problem)
+#+end_src
