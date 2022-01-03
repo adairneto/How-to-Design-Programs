@@ -1,0 +1,127 @@
+* Reference
+
+PROBLEM:
+Eva is trying to decide where to go to university. One important factor for her is tuition costs. Eva is a visual thinker, and has taken Systematic Program Design, so she decides to design a program that will help her visualize the costs at different schools. She decides to start simply, knowing she can revise her design later.
+The information she has so far is the names of some schools as well as their international student tuition costs. She would like to be able to represent that information in bar charts like this one:      
+(A) Design data definitions to represent the information Eva has.
+(B) Design a function that consumes information about schools and their tuition and produces a bar chart.
+(C) Design a function that consumes information about schools and produces the school with the lowest international student tuition.
+
+
+#+begin_src clojure
+;; =================
+;; Constants: none
+
+;; =================
+;; Data definitions:
+(defrecord school [name tuition])
+;; School is (school. String Natural)
+;; Interpretation: name is the school's name, tuition is international student's tuition in USD
+
+;; Examples
+(def S1 (school. "School1" 27797))
+(def S2 (school. "School2" 23300))
+(def S3 (school. "School3" 28500))
+
+;; Template function
+(defn fn-for-school [s]
+    (... (school-name s)
+         (school-tuition s)))
+
+;; Rules used:
+;; - Compound rule: (school. String Natural)
+
+;; Type comment: ListOfSchool is one of:
+;; - empty
+;; - (cons School ListOfSchool) - notice the reference here
+;; Interpretation: a list of schools
+;; Examples:
+(def LOS1 (empty '()))
+(def LOS2 (cons S1 (cons S2 (cons S3 (empty '())))))
+
+;; Template function
+(defn fn-for-los [los]
+    (cond (empty? los) (...)
+          :else (... (fn-for-school (first los)) ; reference induces a natural helper
+                     (fn-for-los (rest los)))))
+
+;; Template rules used:
+;; - one of: 2 cases
+;; - atomic distinct: empty
+;; - compound: (cons School ListOfSchool)
+;; - reference: (first los) 
+;; - self-reference: (rest los) is ListOfSchool
+
+;; =================
+;; Functions:
+;; Signature (data types): ListOfSchool -> Image
+;; Purpose: produce bar chart showing names and tuition of consumed schools
+;; Stub (function definition that produces a dummy result):
+;; (defn chart [los]
+;;     (println ""))
+
+;; Examples
+(is (= "" (chart (empty '())))) ; base case
+(is (= (str "S1: " 8000) (chart (cons (school. "S1" 8000) (empty '())))))
+(is (= (str "S2: " 12000 "\n" "S1: " 8000) (chart (cons (school. "S2" 12000) (cons (school. "S1" 8000) (empty '()))))))
+
+;; Code body
+(defn chart [los]
+    (cond (empty? los) (println)
+          :else (do (make-bar (first los))
+                    (chart (rest los)))))
+
+;; Signature (data types): School -> Image
+;; Purpose: produce the bar for a single school in the bar char
+;; Stub:
+;; (defn make-bar [los]
+;;     (println "School: Tuition"))
+;; Examples
+(is (= (println (str "S1: " 8000)) (make-bar (school. "S1" 8000))))
+;; Code body
+(defn make-bar [s]
+    (println (str (:name s) ": " (:tuition s))))
+;; Test and Debug
+(ns test-problem-aux
+    (:require [clojure.test :refer :all]))
+(deftest testMakeBar
+    (is (= (println (str "S1: " 8000)) (make-bar (school. "S1" 8000)))))
+(run-tests 'test-problem-aux)
+
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest testChart
+    (is (= (println) (chart (empty '())))) ; base case
+    (is (= (println (str "S1: " 8000)) (chart (cons (school. "S1" 8000) (empty '())))))
+    (is (= (println (str "S2: " 12000 "\n" "S3: " 6000)) (chart (cons (school. "S2" 12000) (cons (school. "S3" 6000) (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src
+
+Final code:
+
+#+begin_src clojure
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+;; Code body
+(defrecord school [name tuition])
+
+(defn make-bar [s]
+    (println (str (:name s) ": " (:tuition s))))
+
+(defn chart [los]
+    (cond (empty? los) (println)
+          :else (do (make-bar (first los))
+                    (chart (rest los)))))
+
+;; Test and Debug
+(deftest testChart
+    (is (= (println) (chart (empty '())))) ; base case
+    (is (= (println (str "S1: " 8000)) (chart (cons (school. "S1" 8000) (empty '())))))
+    (is (= (println (str "S2: " 12000 "\n" "S3: " 6000)) (chart (cons (school. "S2" 12000) (cons (school. "S3" 6000) (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src
