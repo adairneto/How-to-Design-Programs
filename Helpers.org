@@ -1,0 +1,161 @@
+* Helpers
+
+How to break design problems into pieces? 
+How to break a function into multiple functions?
+
+** Function Composition
+
+PROBLEM:
+In this problem imagine you have a bunch of pictures that you would like to store as data and present in different ways. We'll do a simple version of that here, and set the stage for a more elaborate version later.
+(A) Design a data definition to represent an arbitrary number of images.
+(B) Design a function called arrange-images that consumes an arbitrary number of images and lays them out left-to-right in increasing order of size.
+
+#+begin_src clojure
+;; === DATA DEFINITION ===
+;; Structure Definition
+;; Type comment: ListOfImages is one of:
+;; - Empty
+;; - '(String ListOfStrings)
+;; Interpretation: is a list of images to store an arbitrary number of images
+
+;; Examples
+(def LOI1 (empty '()))
+(def LOI2 (cons "img1" (empty '())))
+(def LOI3 (cons "img1" (cons "img2" (empty '()))))
+
+;; Template function
+(defn fn-for-LOI [loi]
+    (cond (empty? loi) (...)
+          :else (... (first loi)
+                     (fn-for-LOI (rest loi)))))
+
+;; Template rules used:
+;; - one of: 2 cases
+;; - atomic distinct: empty
+;; - compound data: (cons String ListOfString)
+;; - self-reference: (rest loi) is ListOfString
+
+;; === FUNCTION DEFINITION ===
+;; Signature (data types): ListOfImages -> Image
+;; Purpose: lay out strings (images) left to right in increasing order of size
+;; Stub (function definition that produces a dummy result):
+;; (defn arrange-images [loi] (println))
+
+;; Examples
+(is (= (println) (arrange-images (empty '()))))
+(is (= (println (str "img2" "\n" "img1")) (arrange-images (cons "img1" (cons "img2" (empty '()))))))
+(is (= (println (str "img2" "\n" "img1")) (arrange-images (cons "img2" (cons "img1" (empty '()))))))
+
+;; Template: from data definition
+;; Code body
+(defn arrange-images [loi]
+    (layout-images (sort-images loi)))
+
+;; Helper Functions:
+;; Signature (data types): ListOfImage -> Image
+;; Purpose: place image beside each other in order of list
+;; !!!
+;; Stub: (defn layout-images [loi] (println))
+;; Examples
+(is (= (println) (layout-images (empty '()))))
+(is (= (println (str "img2" "\n" "img1")) (layout-images (cons "img1" (cons "img2" (empty '()))))))
+;; Code body
+(defn layout-images [loi]
+    (cond (empty? loi) (println)
+          :else (println (str (first loi)
+                              (layout-images (rest loi))))))
+
+;; Signature (data types): ListOfImage -> ListOfImage
+;; Purpose: sort images in incresing order of size
+;; !!!
+;; Stub: (defn sort-images [loi] loi)
+;; Examples
+(is (= (empty '()) (sort-images (empty '()))))
+(is (= (cons "img1" (cons "img2" (empty '()))) (sort-images (cons "img2" (cons "img1" (empty '()))))))
+(is (= (cons "img1" (cons "img2" (empty '()))) (sort-images (cons "img1" (cons "img2" (empty '()))))))
+(is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (sort-images (cons "img1" (cons "img3" (cons "img2" (empty '())))))))
+;; Code body
+(defn sort-images [loi]
+    (cond (empty? loi) (empty '())
+          :else (insert (first loi)
+                        (sort-images (rest loi)))))
+
+;; Signature (data types): Image, ListOfImage -> ListOfImage
+;; Purpose: insert image in proper place in list (in incresing order of size)
+;; !!!
+;; Stub: (defn insert [img loi] loi)
+;; ASSUME: loi is already sorted
+;; Examples
+(is (= (cons "img1" (empty '())) (insert "img1" (empty '()))))
+(is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (insert "img1" (cons "img2" (cons "img3" (empty '()))))))
+(is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (insert "img2" (cons "img1" (cons "img3" (empty '()))))))
+(is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (insert "img3" (cons "img1" (cons "img2" (empty '()))))))
+;; Code body
+(defn insert [img loi]
+    (cond (empty? loi) (cons img (empty '()))
+          :else (if (larger? img (first loi))
+                    (cons (first loi) (insert img (rest loi)))
+                    (cons img loi))))
+
+;; Signature (data types): Image, Image -> Boolean
+;; Purpose: produce true if img1 is larger than img2
+;; !!!
+;; Stub: (defn larger? [img1 img2] true)
+;; Examples
+(is (= false (larger? "img1" "img2")))
+(is (= true (larger? "img5" "img2")))
+(is (= false (larger? "img3" "img4")))
+;; Code body
+(defn larger? [img1 img2]
+    (> (compare img1 img2) 0))
+
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(defn larger? [img1 img2]
+    (> (compare img1 img2) 0))
+
+(defn insert [img loi]
+    (cond (empty? loi) (cons img (empty '()))
+          :else (if (larger? img (first loi))
+                    (cons (first loi) (insert img (rest loi)))
+                    (cons img loi))))
+
+(defn sort-images [loi]
+    (cond (empty? loi) (empty '())
+          :else (insert (first loi)
+                        (sort-images (rest loi)))))
+
+(defn layout-images [loi]
+    (cond (empty? loi) (println)
+          :else (println (str (first loi)
+                              (layout-images (rest loi))))))
+
+(defn arrange-images [loi]
+    (layout-images (sort-images loi)))
+
+(deftest tester
+    (is (= false (larger? "img1" "img2")))
+    (is (= true (larger? "img5" "img2")))
+    (is (= false (larger? "img3" "img4")))
+
+    (is (= (cons "img1" (empty '())) (insert "img1" (empty '()))))
+    (is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (insert "img1" (cons "img2" (cons "img3" (empty '()))))))
+    (is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (insert "img2" (cons "img1" (cons "img3" (empty '()))))))
+    (is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (insert "img3" (cons "img1" (cons "img2" (empty '()))))))
+
+    (is (= (empty '()) (sort-images (empty '()))))
+    (is (= (cons "img1" (cons "img2" (empty '()))) (sort-images (cons "img2" (cons "img1" (empty '()))))))
+    (is (= (cons "img1" (cons "img2" (empty '()))) (sort-images (cons "img1" (cons "img2" (empty '()))))))
+    (is (= (cons "img1" (cons "img2" (cons "img3" (empty '())))) (sort-images (cons "img1" (cons "img3" (cons "img2" (empty '())))))))
+
+    (is (= (println) (layout-images (empty '()))))
+    (is (= (println (str "img2" "\n" "img1")) (layout-images (cons "img1" (cons "img2" (empty '()))))))
+
+    (is (= (println) (arrange-images (empty '()))))
+    (is (= (println (str "img2" "\n" "img1")) (arrange-images (cons "img1" (cons "img2" (empty '()))))))
+    (is (= (println (str "img2" "\n" "img1")) (arrange-images (cons "img2" (cons "img1" (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src 
