@@ -1,0 +1,239 @@
+* Binary Search Trees
+
+How the data structure affects performance?
+
+How much time is necessary to find an element in a large data store?
+
+** List of Accounts
+
+#+begin_src clojure
+(def L1 (list "b" "c"))
+(def L2 (list "d" "e" "f"))
+(cons "a" L1)   ; produces ("a" "b" "c")
+(list "a" L1)   ; produces ("a" ("b" "c"))
+(concat L1 L2)  ; produces ("b" "c" "d" "e" "f")
+#+end_src
+
+Consider the following data definition for representing an arbitrary number of user accounts.
+
+#+begin_src clojure
+(defrecord account [num name])
+;; Accounts is one of:
+;; - empty
+;; - (cons (make-account Natural String) Accounts)
+;; interp. a list of accounts, where each
+;;           num is an account number
+;;           name is the person's first name
+(def ACS1 (empty '()))    ; Example 1
+(def ACS2           ; Example 2
+    (list (make-account 1 "abc") (make-account 4 "dcj") (make-account 3 "ilk") (make-account 7 "ruf")))
+(defn fn-for-accounts [accs]    ; Template function
+    (cond (empty? accs) (...)
+    :else (... (account-num (first accs))       ; Natural
+               (account-name (first accs))      ; String
+               (fn-for-accounts (rest accs))))) ; Recursive call
+(defn make-account [num name]
+    (account. num name))
+#+end_src
+
+Complete the design of the lookup-name function below. Note that because this is a search function it will sometimes 'fail'. This happens if it is called with an account number that does not exist in the accounts list it is provided. If this happens the function should produce false. The signature for such a function is written in a special way as shown below.
+
+#+begin_src clojure
+;; Signature (data types): Accounts, Natural -> String or false
+;; Purpose: Try to find account with given number in accounts. If found produce name, otherwise produce false.
+;; Stub (function definition that produces a dummy result): (defn lookup [accs n] "")
+;; Examples
+(is (= false (lookup (empty '()) 0)))
+(is (= false (lookup ACS2 2)))
+(is (= "abc" (lookup ACS2 1)))
+;; Template: from data definition
+;; Code body
+(defn lookup [accs n]
+    (cond (empty? accs) false
+          :else (if (= (:num (first accs)) n)
+                (:name (first accs))
+                (lookup (rest accs) n))))
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= false (lookup ACS1 0)))
+    (is (= false (lookup ACS2 2)))
+    (is (= "abc" (lookup ACS2 1))))
+
+(run-tests 'test-problem)
+#+end_src
+
+** Binary Search Trees
+
+What if the list gets really long? How to look the member names? 
+
+1. The list can be sorted, but we only have first and rest methods. So an average look will take n_of_accounts/2 steps.
+2. Split the list in the middle repeatly until there is only single elements lists. This is a *binary search tree*.
+
+In BST, at each level, all elements (nodes) at the left side have number less than root and all nodes at the right side have a number greater than root.
+
+At each step, if we didn't find what we're looking for, then we eliminate half the tree.
+
+*** Designing a data definition
+
+#+begin_src clojure
+(defrecord node [key val l r])
+;; BST (Binary Search Tree) is one of:
+;; - false                              ; base case
+;; - (node. Integer String BST BST)     ; two self-references
+;; interp. false mans no BST, or empty BST
+;;         key is the node key
+;;         val is the node value
+;;         l and r are left and right subtrees
+;; INVARIANT: for a given node:
+;;  key is > all keys in its l(eft) child
+;;  key is < all keys in its r(ight) child
+;;  the same key never appears twice in the tree
+;; Examples:
+(def BST0 false)
+(def BST1 (node. 1 "abc" false false))
+(def BST4 (node. 4 "dcj" false (node. 7 "ruf" false false)))
+(def BST3 (node. 3 "ilk" BST1 BST4))
+(def BST42
+    (node. 42 "ily"
+               (node. 27 "wit" (node. 14 "olp" false false) false)
+               (node. 50 "dug" false false)))
+(def BST10
+    (node. 10 "why" BST3 BST42))
+;; Template:
+(defn fn-for-bst [t]
+    (cond (false? t) (...)
+          :else (... (:key t)                ; Integer
+                     (:val t)                ; String
+                     (fn-for-bst (:l t))     ; natural recursion
+                     (fn-for-bst (:r t)))))  ; natural recursion
+;; Template rules used:
+;; - one of: 2 cases
+;; - atomic distinct: false
+;; - compound: (node. Integer String BST BST)
+;; - self-reference: (:l t) has type BST
+;; - self-reference: (:r t) has type BST
+#+end_src
+
+*** Lookup in BST
+
+#+begin_src clojure
+;; Signature (data types): BST, Natural -> String or false
+;; Purpose: try to find node with given key, if found produce value; if not found produce false.
+;; Stub (function definition that produces a dummy result): (defn lookup-key [t k] "")
+;; Examples
+(is (= false (lookup-key BST0 99)))
+(is (= "abc" (lookup-key BST1 1)))
+(is (= false (lookup-key BST1 0)))      ; L fail
+(is (= false (lookup-key BST1 99)))     ; R fail
+(is (= "abc" (lookup-key BST10 1)))     ; L, L succeed
+(is (= "dcj" (lookup-key BST10 4)))     ; L, R succeed
+(is (= "wit" (lookup-key BST10 27)))    ; R, L succeed
+(is (= "dug" (lookup-key BST10 50)))    ; R, R succeed
+;; Template: from BST data definition and additional atomic parameter k
+;; Code body
+(defn lookup-key [t k]
+    (cond (false? t) false
+          :else (cond (= k (:key t)) (:val t)
+                      (< k (:key t)) (lookup-key (:l t) k)  ; go left
+                      (> k (:key t)) (lookup-key (:r t) k)  ; go right
+                      )))
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= false (lookup-key BST0 99)))
+    (is (= "abc" (lookup-key BST1 1)))
+    (is (= false (lookup-key BST1 0)))      ; L fail
+    (is (= false (lookup-key BST1 99)))     ; R fail
+    (is (= "abc" (lookup-key BST10 1)))     ; L, L succeed
+    (is (= "dcj" (lookup-key BST10 4)))     ; L, R succeed
+    (is (= "wit" (lookup-key BST10 27)))    ; R, L succeed
+    (is (= "dug" (lookup-key BST10 50))))    ; R, R succeed
+
+(run-tests 'test-problem)
+#+end_src
+
+** Problem 1
+
+Design a function that consumes a BST and produces the sum of all the keys in the BST.
+
+#+begin_src clojure
+;; Signature (data types): BST -> Number
+;; Purpose: produces the sum of all keys in the BST
+;; Stub (function definition that produces a dummy result): (defn sum-of-keys [t] 0)
+;; Examples
+(is (= 0 (sum-of-keys BST0)))
+(is (= 1 (sum-of-keys BST1)))
+(is (= 15 (sum-of-keys BST3)))
+;; Template: from data definition
+;; Code body
+(defn sum-of-keys [t]
+    (cond (false? t) 0
+          :else (+ (:key t)
+                   (sum-of-keys (:l t))
+                   (sum-of-keys (:r t)))))
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= 0 (sum-of-keys BST0)))
+    (is (= 1 (sum-of-keys BST1)))
+    (is (= 15 (sum-of-keys BST3))))
+
+(run-tests 'test-problem)
+#+end_src
+
+** Problem 2
+
+Design a function that consumes an Integer, String and BST, and adds a node that has the given key and value to the tree. The node should be inserted in the proper place in the tree. The function can assume there is not already an entry for that number in the tree. The function should produce the new BST.
+
+Do not worry about keeping the tree balanced. We will come back to this later.
+
+#+begin_src clojure
+;; Signature (data types): Integer, String, BST -> BST
+;; Purpose: adds a node with key : Integer and value : String to BST, inserting it into the proper place
+;; ASSUMES: the entry is not already in the tree
+;; Stub (function definition that produces a dummy result): (defn add-node [key val t] t)
+;; Examples
+(is (= (node. 2 "def" false false) (add-node 2 "def" BST0)))
+(is (= (node. 4 "dcj" (node. 2 "def" false BST4) (node. 7 "ruf" false false)) (add-node 2 "def" BST4)))
+(is (= (node. 4 "dcj" false (node. 7 "ruf" (node. 5 "def" false false) false)) (add-node 5 "def" BST4)))
+(is (= (node. 42 "ily"
+                 (node. 27 "wit" (node. 14 "olp" false false) false)
+                 (node. 50 "dug" false (node. 51 "obg" false false))))
+       (add-node 51 "obg" BST42))
+(is (= (node. 42 "ily"
+                 (node. 27 "wit" (node. 14 "olp" false false) false)
+                 (node. 50 "dug" (node. 49 "obg" false false) false))
+       (add-node 49 "obg" BST42)))
+;; Template: from data definition
+;; Code body
+(defn add-node [key value t]
+    (cond (false? t) (node. key value false false)
+          :else (if (< key (:key t))
+                    (node. (:key t) (:val t) (add-node key value (:l t)) (:r t))
+                    (node. (:key t) (:val t) (:l t) (add-node key value (:r t))))))
+;; Test and Debug
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+(deftest tester
+    (is (= (node. 2 "def" false false) (add-node 2 "def" BST0)))
+    (is (= (node. 4 "dcj" (node. 2 "def" false false) (node. 7 "ruf" false false)) (add-node 2 "def" BST4)))
+    (is (= (node. 4 "dcj" false (node. 7 "ruf" (node. 5 "def" false false) false)) (add-node 5 "def" BST4)))
+    (is (= (node. 42 "ily"
+                    (node. 27 "wit" (node. 14 "olp" false false) false)
+                    (node. 50 "dug" false (node. 51 "obg" false false))))
+        (add-node 51 "obg" BST42))
+    (is (= (node. 42 "ily"
+                    (node. 27 "wit" (node. 14 "olp" false false) false)
+                    (node. 50 "dug" (node. 49 "obg" false false) false))
+        (add-node 49 "obg" BST42))))
+
+(run-tests 'test-problem)
+#+end_src
