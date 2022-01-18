@@ -1,0 +1,76 @@
+* Generative Recursion
+
+** Introduction
+
+We were previously working with structural recursion: they take a piece of data and each recursive call take a subpiece of the data.
+
+In generative recursion, each recursive call *generates* a new data.
+
+Will this recursive function ever end? Write the proofs as we write the generative recursion.
+
+Example: fractals.
+
+** Recipe
+
+#+begin_src clojure
+(defn genrec-fn [d]
+  (cond (trivial? d) (trivial-answer d)
+        :else (... d (genrec-fn (next-problem d)))))
+#+end_src
+
+** Collatz Conjecture
+
+#+begin_src clojure
+;; Natural -> listof Natural
+;; produce hailstone sequence for n
+
+;; Code body
+(ns collatz-conjecture
+    (:require [clojure.test :refer :all]))
+
+(defn hailstones [n]
+  (if (= n 1)
+      (list 1)
+      (cons n (if (even? n)
+                  (hailstones (/ n 2))
+                  (hailstones (+ 1 (* n 3)))))))
+
+;; Examples and Tests
+(deftest collatz
+    (is (= (list 1) (hailstones 1)))
+    (is (= (list 2 1) (hailstones 2)))
+    (is (= (list 4 2 1) (hailstones 4)))
+    (is (= (list 5 16 8 4 2 1) (hailstones 5))))
+
+(run-tests 'collatz-conjecture)
+#+end_src
+
+** When does the function stops?
+
+Three part termination argument.
+
+1. Base case:
+
+`(= n 1) (list 1)`
+
+2. Reduction step:
+
+If n is even `(/ n 2)`
+
+If n is odd `(+ 1 (* n 3))`
+
+3. Argument that repeated application of reduction step will eventually reach the base case:
+
+Not proved :(
+
+** Lambda Expressions
+
+Syntax: `(fn [args] expression)`
+
+#+begin_src clojure
+(println ((fn [a b c] (+ a b c)) 2 4 6))
+#+end_src
+
+** Sudoku
+
+See `sudoku.clj`.

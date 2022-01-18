@@ -1,0 +1,177 @@
+* Abstraction
+
+** Why use it?
+
+- Refactor identical parts
+- Manages complexity
+- Separates knowledge domains more clearly
+
+** Examples
+
+1. Identify two highly repetitive expressions:
+#+begin_src clojure
+(* pi (sqr 4)) ;area of circle radius 4
+(* pi (sqr 6)) ;area of circle radius 6
+#+end_src
+
+2. Wrap a function around that definition, generalizing it.
+2.1 Use a more general name.
+2.2 Add a parameter for varying position.
+2.3 Replace specific expressions with calls to abstract funcion passing varying value.
+#+begin_src clojure
+(defn area [r]
+  (* pi (sqr r)))
+(area 4)
+(area 6)
+#+end_src
+
+Another example:
+#+begin_src clojure
+(ns test-problem
+    (:require [clojure.test :refer :all]))
+
+;; String, (listof String) -> Boolen
+;; Produce true if LOS includes s
+;; Stub: (defn contains? [los] false)
+(defn contains? [s los]
+  (cond (empty? los) false
+        :else (if (= s (first los))
+                  true
+                  (contains? s (rest los)))))   ; Recursive call
+
+(defn containsUbc? [los]
+    (contains? "UBC" los))
+
+(defn containsMcGill? [los]
+    (contains? "McGill" los))
+
+;; Test and debug
+(deftest tester
+    (is (= false (contains? "UBC" (empty '()))))
+    (is (= false (contains? "UBC" (cons "McGill" (empty '())))))
+    (is (= true (contains? "UBC" (cons "UBC" (empty '())))))
+    (is (= true (contains? "UBC" (cons "UBC" (cons "McGill" (empty '()))))))
+    (is (= false (contains? "McGill" (empty '()))))
+    (is (= true (contains? "McGill" (cons "McGill" (empty '())))))
+    (is (= false (contains? "McGill" (cons "UBC" (empty '())))))
+    (is (= true (contains? "McGill" (cons "UBC" (cons "McGill" (empty '())))))))
+
+(run-tests 'test-problem)
+#+end_src
+
+Here we work backwards: from abstract function to purpose.
+
+Higher-order function:
+#+begin_src clojure
+;; (X -> Y), (listof X) -> (listof Y)   ; X and Y are a type parameter
+;; Given fun and (list n0 n1 ...) produce (list (fun n0) (fun n1) ...)
+(defn map2 [fun lon]
+    (cond (empty? lon) (empty '())
+          :else (cons (fun (first lon))
+                      (map2 fun (rest lon)))))
+
+;; (X -> Boolean), (listof X) -> (listof X)
+;; filter list to contain only those elements that satisfy a given predicate
+(defn filter2 [pred lon]
+    (cond (empty? lon) (empty '())
+          :else (if (pred (first lon))
+                    (cons (first lon)
+                          (filter2 pred (rest lon)))
+                    (filter2 pred (rest lon)))))
+#+end_src
+
+** Map, Filter, Reduce
+
+Map applies a function `fun` to the list. Syntax: `(map fun '(x y z)`.
+
+Filter returns only the elements that satisfy the predicate. Syntax: `(filter pred '(x y z))`.
+
+Reduce is the abstraction of sum and product. Example: `(reduce + 0 [1 2 3])` produces '6'. Here '0' is the optional base case result.
+
+Reduce is also a generalization of functions like
+
+#+begin_src clojure
+(defn fn-for-lox [los]
+    (cond (empty? lox) (...)
+          :else (... (first lox)
+                     (fn-for-lox (rest lox)))))
+#+end_src
+
+where the first "..." is replaced by the base case "0" (in the example above) and the second "..." is replaced by the operation "+".
+
+#+begin_src clojure
+(defn sum-to [n]
+  (reduce + 0 (range n)))
+
+(println (sum-to 10)) ; returns 45
+#+end_src
+
+** Closures
+
+Two cases:
+
+1. The function that you want to pass to an abstract function doesn't already exist. Define it using local or at top level.
+2. Where the body of the abstract function must refer to a parameter of the outer function. Define it locally. This is closure.
+
+** Fold functions
+
+Form of information -> type comments -> template -> form of the functions -> abstract functions
+
+How to shorten that route? 
+
+#+begin_src clojure
+(ns namespace
+  (:require [clojure.test :refer :all]))
+
+;; ListOfX is one of:
+;; - empty
+;; - (cons X ListOfX)
+;; interp. a list of X
+
+;; and the template for (listof X) is:
+
+(defn fn-for-lox [lox]
+  (cond (empty? lox) (...)
+        :else (... (first lox)
+                   (fn-for-lox (rest lox)))))
+
+; PROBLEM:
+; 
+; Design an abstract fold function for (listof X). 
+
+;; (X, Y -> Y), Y, (listof X) -> Y
+;; The abstract fold function for (listof X)
+(defn fold [fun b lox]
+  (cond (empty? lox) b
+        :else (fun (first lox)
+                   (fold fun b (rest lox)))))
+
+(deftest fold
+    (is (= 6 (fold + 0 (list 1 2 3))))
+    (is (= 6 (fold * 1 (list 1 2 3))))
+    (is (= "abcdef" (fold str "" (list "a" "bc" "def")))))
+
+(run-tests 'namespace)
+
+
+; PROBLEM:
+; 
+; Complete the function definition for sum using fold. 
+
+
+;; (listof Number) -> Number
+;; add up all numbers in list
+; (defn sum [lon] 0) ;stub
+
+(defn sum [lon]
+    (cond (empty? lon) 0
+          :else (+ (first lon)
+                   (sum (rest lon)))))
+
+(defn sum [lon]
+    (reduce + 0 lon))
+
+(deftest sumlon
+    (is (= 9 (sum (list 2 3 4))))
+    (is (= 0 (sum (empty '())))))
+#+end_src
