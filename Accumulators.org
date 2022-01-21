@@ -1,0 +1,349 @@
+#+TITLE: Accumulators
+#+DATE: \today
+#+AUTHOR: Adair Antonio da Silva Neto
+
+Three tipes of accumulators:
+
+1. context preserving
+2. result so far
+3. worklist
+
+* Template
+
+1. Template normally according to the rules of structural recursion
+2. Encapsulate that function around an outer function using local
+3. Add the accumulator parameter around the inner function, treating it as atomic
+
+#+begin_src clojure
+  (defn fn-name [lox0]
+    (letfn [(fn-name [lox acc]
+              (cond (empty? lox) (... acc)
+                    :else (... acc
+                               (first lox)
+                               (fn-name (rest lox)
+                                        (... acc (first lox))))))]
+
+      (fn-name lox0 ...)))
+#+end_src
+
+* Context preserving
+
+PROBLEM: Design a function that consumes a list of elements and produces the list consisting of only the 1st, 3rd, 5th and so on elements of its input.
+
+#+begin_src clojure
+  ;; (listof X) -> (listof X)
+  ;; produce list consisting of only the 1st, 3rd, 5th... elements of lox
+  ;; (defn skip1 [lox] empty) ;stub
+
+  (ns test-problem
+    (:require [clojure.test :refer :all]))
+
+  (defn skip1 [lox0]
+    ;; acc: Natural; 1-based position of (first lox) in lox0
+    ;; (skip1 (list "a" "b" "c") 1)
+    ;; (skip1 (list     "b" "c") 2)
+    ;; (skip1 (list         "c") 3)
+    (letfn [(skip1 [lox acc]
+              (cond (empty? lox) '()
+                    :else (if (odd? acc)
+                              (cons (first lox)
+                                    (skip1 (rest lox)
+                                           (+ 1 acc)))
+                              (skip1 (rest lox)
+                                     (+ 1 acc)))))]
+      (skip1 lox0 1)))
+
+  ;; Use a context-preserving accumulator to keep track of the lost context (control variable)
+
+  ;; Examples, Test and Debug
+  (deftest skip1-tester
+    (is (= (list "a" "c") (skip1 (list "a" "b" "c" "d"))))
+    (is (= (list 1 3 5) (skip1 (list 1 2 3 4 5 6)))))
+
+  (run-tests 'test-problem)  
+#+end_src
+
+#+RESULTS:
+| #'test-problem/skip1                                  |
+| #'test-problem/skip1-tester                           |
+| {:test 1, :pass 2, :fail 0, :error 0, :type :summary} |
+
+PROBLEM: Design a function that consumes a list of elements lox and a natural number n and produces the list formed by including the first element of lox, then skipping the next n elements, including an element, skipping the next n and so on.
+
+#+begin_src clojure
+  ;; (listof X), Natural -> (listof X)
+  ;; produces list consisting of only the 1st, nth, 2nth... elements of lox
+  ;; (defn skipn [lox] '()) ;stub
+
+  (ns test-problem
+    (:require [clojure.test :refer :all]))
+
+  (defn skipn [lox0 n]
+    ;; acc: Natural; the number of elements to skip before including the next one
+    ;; (skipn (list "a" "b" "c" "d" "e") 0) ; include
+    ;; (skipn (list     "b" "c" "d" "e") 2) ; don't include
+    ;; (skipn (list         "c" "d" "e") 1) ; don't include
+    ;; (skipn (list             "d" "e") 0) ; include
+    ;; (skipn (list                 "e") 2) ; don't include
+    (letfn [(skipn [lox acc]
+              (cond (empty? lox) '()
+                    :else (if (zero? acc)
+                              (cons (first lox)
+                                    (skipn (rest lox)
+                                           n))
+                              (skipn (rest lox)
+                                     (- acc 1)))))]
+      (skipn lox0 0)))
+
+  ;; Examples, Test and Debug
+  (deftest skipn-tester
+    (is (= '() (skipn '() 0)))
+    (is (= (list "a" "b" "c" "d" "e" "f") (skipn (list "a" "b" "c" "d" "e" "f") 0)))
+    (is (= (list "a" "d") (skipn (list "a" "b" "c" "d" "e" "f") 2)))
+    (is (= (list 1 5 9) (skipn (list 1 2 3 4 5 6 7 8 9) 3))))
+
+  (run-tests 'test-problem)
+#+end_src
+
+#+RESULTS:
+| #'test-problem/skipn                                  |
+| #'test-problem/skipn-tester                           |
+| {:test 2, :pass 6, :fail 0, :error 0, :type :summary} |
+
+* Tail Recursion
+
+PROBLEM:
+
+(A) Consider the following function that consumes a list of numbers and produces the sum of all the numbers in the list. Use the stepper to analyze the behavior of this function as the list gets larger and larger.
+
+(B) Use an accumulator to design a tail-recursive version of sum.
+
+#+begin_src clojure
+
+  ;; (listof Number) -> Number
+  ;; produce sum of all elements of lon
+
+  (ns test-problem
+    (:require [clojure.test :refer :all]))
+
+  (defn sum [lon]
+    (cond (empty? lon) 0
+          :else (+ (first lon)
+                   (sum (rest lon)))))
+  ;; adds data to the stack, which is expensive
+
+  (defn sum [lon0]
+    ;; acc: Number; the sum of the elements seen so far
+    ;; (sum (list 2 4 5))
+    ;; (sum (list 2 4 5)  0)
+    ;; (sum (list   4 5)  2)
+    ;; (sum (list     5)  6)
+    ;; (sum (list      ) 11)
+    (letfn [(sum [lon acc]
+              (cond (empty? lon) acc
+                    :else (sum (rest lon)
+                               (+ acc (first lon)))))]
+      (sum lon0 0)))
+
+  (deftest sum-test
+    (is (= 0 (sum '())))
+    (is (= 11 (sum (list 2 4 5)))))
+
+  (run-tests 'test-problem)
+
+#+end_src
+
+#+RESULTS:
+| #'test-problem/sum                                    |
+| #'test-problem/sum                                    |
+| #'test-problem/sum-test                               |
+| {:test 3, :pass 8, :fail 0, :error 0, :type :summary} |
+
+`foldl` is tail recursive abstract fold function for lists.
+
+Steps:
+
+1. Template according to accumulator recipe
+2. Delete part of template wrapping around recursive call
+3. Computation that would have been around recursive call moves to be in accumulator argument position
+
+
+* Worklist accumulator
+
+PROBLEM:
+
+In the Harry Potter movies, it is very important which of the four houses a
+wizard is placed in when they are at Hogwarts. This is so important that in 
+most families multiple generations of wizards are all placed in the same family. 
+
+Design a representation of wizard family trees that includes, for each wizard,
+their name, the house they were placed in at Hogwarts and their children. We
+encourage you to get real information for wizard families from: 
+   http://harrypotter.wikia.com/wiki/Main_Page
+
+The reason we do this is that designing programs often involves collection
+domain information from a variety of sources and representing it in the program
+as constants of some form. So this problem illustrates a fairly common scenario.
+
+That said, for reasons having to do entirely with making things fit on the
+screen in later videos, we are going to use the following wizard family tree,
+in which wizards and houses both have 1 letter names. (Sigh)
+
+#+begin_src clojure
+
+  ;; DATA DEFINITION
+
+  (ns test-problem
+    (:require [clojure.test :refer :all]))
+
+  (defrecord wizard [name house children])
+  ;; Wizard is (wizard. String String (listof Wizard))
+  ;; interp. A wizard, with name, house and list of children.
+
+  (def Wa (wizard. "A" "S" (empty '())))
+  (def Wb (wizard. "B" "G" (empty '())))
+  (def Wc (wizard. "C" "R" (empty '())))
+  (def Wd (wizard. "D" "H" (empty '())))
+  (def We (wizard. "E" "R" (empty '())))
+  (def Wf (wizard. "F" "R" (list Wb)))
+  (def Wg (wizard. "G" "S" (list Wa)))
+  (def Wh (wizard. "H" "S" (list Wc Wd)))
+  (def Wi (wizard. "I" "H" (empty '())))
+  (def Wj (wizard. "J" "R" (list We Wf Wg)))
+  (def Wk (wizard. "K" "G" (list Wh Wi Wj)))
+
+  ;; Template
+  (defn fn-for-wiz [w]
+    (letfn [(fun-for-wiz [w]
+              (... (:name w)
+                   (:house w)
+                   (fn-for-low (wiz-kids w))))
+            (fn-for-low [low]
+              (cond (empty? low) (...)
+                    :else (... (fn-for-wiz (first low))
+                               (fn-for-low (rest low)))))]
+      (fun-for-wiz w)))
+
+#+end_src
+
+PROBLEM:
+
+Design a function that consumes a wizard and produces the names of every wizard in the tree that was placed in the same house as their immediate parent.
+
+#+begin_src clojure
+
+  ;; FUNCTIONS
+
+  ;; Type definition: Wizard -> (listof String)
+  ;; interp. produce the name of every descendent in the same house as their parent
+
+  ;; (defn same-house-as-parent [w] '()) ;stub
+
+  (defn same-house-as-parent [w]
+    ;; parent-house is String; the house of this wizard's immediate parent ("" for root of tree)
+    ;; (same-house-as-parent Wk)
+    ;; (fn-for-wiz Wk "")
+    ;; (fn-for-wiz Wh "G")
+    ;; (fn-for-wiz Wc "S")
+    ;; (fn-for-wiz Wd "S")
+    ;; (fn-for-wiz Wi "G")
+    (letfn [(fn-for-wiz [w parent-house]
+              (if (= (:house w) parent-house)
+                  (cons (:name w)
+                        (fn-for-low (:children w)
+                                    (:house w)))
+                  (fn-for-low (:children w)
+                              (:house w))))
+            (fn-for-low [low parent-house]
+              (cond (empty? low) (empty '())
+                    :else (concat
+                               (fn-for-wiz (first low) parent-house)
+                               (fn-for-low (rest low) parent-house))))]
+      (fn-for-wiz w "")))
+
+  ;; Examples, Test and Debug
+  (deftest same-as-tester
+    (is (= (list "A") (same-house-as-parent Wg)))
+    (is (= (empty '()) (same-house-as-parent Wa)))
+    (is (= (list "E" "F" "A") (same-house-as-parent Wk)))) 
+
+  (run-tests 'test-problem)
+
+#+end_src
+
+PROBLEM:
+
+Design a function that consumes a wizard and produces the number of wizards 
+in that tree (including the root). Your function should be tail recursive.
+
+#+begin_src clojure
+
+  ;; Wizard -> Natural
+  ;; produces the number of wizards in that tree (including the root)
+
+  ;; (defn count [w] 0) ;stub
+
+  (defn count [w]
+    ;; rsf is Natural; the number of wizards seen so far
+    ;; todo is (listof Wizard) ; wizards we still need to visit with fn-for-wiz
+    ;; (count Wk)
+    ;; (fn-for-wiz Wk 0)
+    ;; (fn-for-wiz Wh 1)
+    ;; (fn-for-wiz Wc 2)
+    (letfn [(fn-for-wiz [w todo rsf]
+              (fn-for-low (concat (:children w) todo)
+                          (+ 1 rsf)))
+            (fn-for-low [todo rsf]
+              (cond (empty? todo) rsf
+                    :else (fn-for-wiz (first todo) (rest todo) rsf)))]
+      (fn-for-wiz w '() 0)))
+
+  (deftest count-test
+    (is (= 1 (count Wa)))
+    (is (= 11 (count Wk))))
+
+#+end_src
+
+PROBLEM:
+
+Design a new function definition for same-house-as-parent that is tail recursive. You will need a worklist accumulator.
+
+#+begin_src clojure
+
+  (defrecord wle [w ph])
+  ;; WLE (worklist entry) is (wle. Wizard String)
+  ;; interp. a worklist entry with the wizard to pass to fn-for wiz, and that wizard's parent house
+
+  ;; Template: from Wizard (arb-arity tree, wrapped in local)
+  ;; added worklist accumulator for tail recursion
+  ;; added result so far accumulator for tail recursion
+  ;; added compound data definition for wish list entries
+
+  (defn same-house-as-parent [w]
+    ;; todo is (listof ...) ; a worklist accumulator
+    ;; rsf is (listof String) ; a result so far accumulator
+    (letfn [(fn-for-wiz [todo w ph rsf]
+              (fn-for-low (concat (map (fn [k]
+                                          (wle. k (:house w)))
+                                        (:children w))
+                                  todo)
+                          (if (= (:house w) ph)
+                              (cons (:name w) rsf)
+                              rsf)))
+
+            (fn-for-low [todo rsf]
+              (cond (empty? todo) rsf
+                    :else (fn-for-wiz (rest todo)
+                                      (:w (first todo))
+                                      (:ph (first todo))
+                                      rsf)))]
+
+      (fn-for-wiz '() w "" '())))
+
+  ;; Examples, Test and Debug
+  (deftest same-as-tester
+    (is (= (list "A") (same-house-as-parent Wg)))
+    (is (= (empty '()) (same-house-as-parent Wa)))
+    (is (= (list "A" "F" "E") (same-house-as-parent Wk))))
+
+#+end_src
